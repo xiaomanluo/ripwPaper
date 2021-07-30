@@ -1,6 +1,6 @@
 # Paper Repository
 
-This repository contains the code to replicate all numerical results in our paper: [Double Robust Two-Way Fixed Effect Regression For Panel Data](https://arxiv.org/abs/).
+This repository contains the code to replicate all numerical results in our paper: [Double-Robust Two-Way Fixed Effect Regression For Panel Data](https://arxiv.org/abs/2107.13737).
 
 ## Introduction
 All R scripts are included in the folder `R/`. The outputs and the plots are included in the folder `data/` and the folder `figs/`, respectively. 

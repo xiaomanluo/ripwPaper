@@ -1,10 +1,15 @@
-source("ripw.R")
-source("utils.R")
+################################################################
+#######
+####### Similation study in Section 5.1
+#######
+################################################################
+
+source("expr_helpers.R")
 
 # Simulation setup
 set.seed(20210701)
 nreps <- 10000
-n <- 10000
+n <- 1000
 T <- 4
 
 ## Parameters
@@ -70,9 +75,9 @@ for (k in 1:nrow(exprs)){
         Theta_RIPW <- Pi_RIPW[int_treat] / gps
         
         df <- data.frame(method = c("IPW", "RIPW", "UNW"))
-        est_IPW <- ripw(Y, treat, NULL, Theta_IPW)
-        est_RIPW <- ripw(Y, treat, NULL, Theta_RIPW)
-        est_UNW <- ripw(Y, treat, NULL, Theta = rep(1, nrow(Y)))
+        est_IPW <- ripw_simplified(Y, treat, NULL, Theta_IPW)
+        est_RIPW <- ripw_simplified(Y, treat, NULL, Theta_RIPW)
+        est_UNW <- ripw_simplified(Y, treat, NULL, Theta = rep(1, nrow(Y)))
 
         df$est <- c(est_IPW$tauhat, est_RIPW$tauhat, est_UNW$tauhat)
         df$pval <- c(est_IPW$pval, est_RIPW$pval, est_UNW$pval)

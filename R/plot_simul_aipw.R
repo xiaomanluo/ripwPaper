@@ -1,10 +1,16 @@
+################################################################
+#######
+####### Plots in Appendix D
+#######
+################################################################
+
 library("tidyverse")
 
 load("../data/simul_aipw.RData")
 plot <- results %>%
     filter(method != "IPW") %>%
-    mutate(method = factor(method, levels = c("UNW", "AIPW_fe", "AIPW_nfe", "AIPW_mundlak", "RIPW"),
-                           labels = c("Unweighted", "AIPW (w/ FE)", "AIPW (w/o FE)", "AIPW (A.I.)", "RIPW"))) %>%
+    mutate(method = factor(method, levels = c("UNW", "AIPW_fe", "AIPW_nfe", "AIPW_nfe_cf", "RIPW"),
+                           labels = c("Unweighted", "AIPW (w/ FE)", "AIPW (w/o FE)", "AIPW+CF (w/o FE)", "RIPW"))) %>%
     mutate(out = factor(out, levels = c(TRUE, FALSE),
                         labels = c("Correct Outcome Model", "Wrong Outcome Model")),
            treat = factor(treat, levels = c(TRUE, FALSE),

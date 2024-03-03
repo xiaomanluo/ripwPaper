@@ -1,10 +1,15 @@
-source("ripw.R")
-source("utils.R")
+################################################################
+#######
+####### Similation study in Appendix D
+#######
+################################################################
+
+source("expr_helpers.R")
 
 #### Simulation setup
 set.seed(20210701)
 nreps <- 100
-n <- 10000
+n <- 1000
 T <- 4
 
 ## Parameters
@@ -59,13 +64,15 @@ for (i in 1:nreps) {
     gps_wrong <- fit_gps(treat, rep(1, n), foldid = foldid)
 
     ## Correct outcome model for UNW and RIPW
-    mhat_correct <- twfe_mhat(Y, treat, X,
-                              interact = TRUE,
-                              joint = TRUE,
-                              foldid = foldid)$mhat0
+    X_ti <- as.matrix(X)
+    colnames(X_ti) <- "x"
+    muhat_correct <- muhat_twfe(Y, treat,
+                                X_ti = X_ti, main_tvc = "x",
+                                joint = TRUE,
+                                foldid = foldid)
 
     ## Wrong outcome model for UNW and RIPW
-    mhat_wrong <- NULL
+    muhat_wrong <- NULL
 
     ## Correct treatment model for AIPW
     mps_correct <- fit_mps(treat, X, foldid = foldid)
@@ -73,39 +80,38 @@ for (i in 1:nreps) {
     ## Wrong treatment model for AIPW
     mps_wrong <- fit_mps(treat, rep(1, n), foldid = foldid)
     
-    ## Correct outcome model for AIPW with fitted fe
-    mhat_AIPW_correct_fe <- twfe_mhat(Y, treat, X,
-                                      interact = TRUE,
-                                      joint = TRUE,
-                                      nfolds = 1,
-                                      usefe = TRUE)
+    ## Correct outcome model for AIPW with fitted fe w/o cross-fitting
+    muhat_AIPW_correct_fe <- fit_muhat(Y, treat, X,
+                                       cf = FALSE, 
+                                       usefe = TRUE)
 
-    ## Correct outcome model for AIPW without fitted fe
-    mhat_AIPW_correct_nfe <- twfe_mhat(Y, treat, X,
-                                       interact = TRUE,
-                                       joint = TRUE,
-                                       nfolds = 1,
-                                       usefe = FALSE)
+    ## Correct outcome model for AIPW without fitted fe w/o cross-fitting
+    muhat_AIPW_correct_nfe <- fit_muhat(Y, treat, X,
+                                        cf = FALSE, 
+                                        usefe = FALSE) 
 
-    ## Correct outcome model for AIPW using Mundlak regression
-    mhat_AIPW_correct_mundlak <- mundlak(Y, treat, rep(X, T))
+    ## Correct outcome model for AIPW without fitted fe w/ cross-fitting
+    muhat_AIPW_correct_nfe_cf <- fit_muhat(Y, treat, X,
+                                           cf = TRUE, 
+                                           usefe = FALSE,
+                                           foldid = foldid) 
+
+    ## Wrong outcome model for AIPW with fitted fe w/o cross-fitting
+    muhat_AIPW_wrong_fe <- fit_muhat(Y, treat, X = NULL,
+                                     cf = FALSE, 
+                                     usefe = TRUE)
+
+    ## Wrong outcome model for AIPW without fitted fe w/o cross-fitting
+    muhat_AIPW_wrong_nfe <- fit_muhat(Y, treat, X = NULL,
+                                      cf = FALSE, 
+                                      usefe = FALSE) 
+
+    ## Wrong outcome model for AIPW without fitted fe w/ cross-fitting
+    muhat_AIPW_wrong_nfe_cf <- fit_muhat(Y, treat, X = NULL,
+                                         cf = TRUE, 
+                                         usefe = FALSE,
+                                         foldid = foldid) 
     
-    ## Wrong outcome model for AIPW with fitted fe
-    mhat_AIPW_wrong_fe <- twfe_mhat(Y, treat, X = NULL,
-                                    interact = TRUE,
-                                    joint = TRUE,
-                                    nfolds = 1,
-                                    usefe = TRUE)
-
-    ## Wrong outcome model for AIPW without fitted fe
-    mhat_AIPW_wrong_nfe <- twfe_mhat(Y, treat, X = NULL,
-                                     interact = TRUE,
-                                     joint = TRUE,
-                                     nfolds = 1,
-                                     usefe = FALSE)
-
-    ## Wrong outcome model for AIPW using Mundlak regression
-    mhat_AIPW_wrong_mundlak <- mundlak(Y, treat)
     
     ## Reshaped functions
     Pi_IPW <- rep(0.2, 5)
@@ -118,15 +124,15 @@ for (i in 1:nreps) {
         out_model <- exprs$out[k]
         treat_model <- exprs$treat[k]
         if (out_model){
-            mhat <- mhat_correct
-            mhat_AIPW_fe <- mhat_AIPW_correct_fe
-            mhat_AIPW_nfe <- mhat_AIPW_correct_nfe
-            mhat_AIPW_mundlak <- mhat_AIPW_correct_mundlak
+            muhat <- muhat_correct
+            muhat_AIPW_fe <- muhat_AIPW_correct_fe
+            muhat_AIPW_nfe <- muhat_AIPW_correct_nfe
+            muhat_AIPW_nfe_cf <- muhat_AIPW_correct_nfe_cf
         } else {
-            mhat <- mhat_wrong
-            mhat_AIPW_fe <- mhat_AIPW_wrong_fe
-            mhat_AIPW_nfe <- mhat_AIPW_wrong_nfe
-            mhat_AIPW_mundlak <- mhat_AIPW_wrong_mundlak
+            muhat <- muhat_wrong
+            muhat_AIPW_fe <- muhat_AIPW_wrong_fe
+            muhat_AIPW_nfe <- muhat_AIPW_wrong_nfe
+            muhat_AIPW_nfe_cf <- muhat_AIPW_wrong_nfe_cf
         }
         if (treat_model){
             gps <- gps_correct
@@ -140,26 +146,23 @@ for (i in 1:nreps) {
         Theta_IPW <- Pi_IPW[int_treat] / gps
         Theta_RIPW <- Pi_RIPW[int_treat] / gps
         
-        est_IPW <- ripw(Y, treat, mhat, Theta_IPW)
-        est_RIPW <- ripw(Y, treat, mhat, Theta_RIPW)
-        est_UNW <- ripw(Y, treat, mhat, Theta_UNW)
-        est_AIPW_fe <- aipw(Y, treat, mhat_AIPW_fe, mps)
-        est_AIPW_nfe <- aipw(Y, treat, mhat_AIPW_nfe, mps)
-        est_AIPW_mundlak <- aipw(Y, treat, mhat_AIPW_mundlak, mps)
+        est_IPW <- ripw_simplified(Y, treat, muhat$muhat0, Theta_IPW)
+        est_RIPW <- ripw_simplified(Y, treat, muhat$muhat0, Theta_RIPW)
+        est_UNW <- ripw_simplified(Y, treat, muhat$muhat0, Theta_UNW)
+        est_AIPW_fe <- aipw(Y, treat, muhat_AIPW_fe, mps)
+        est_AIPW_nfe <- aipw(Y, treat, muhat_AIPW_nfe, mps)
+        est_AIPW_nfe_cf <- aipw(Y, treat, muhat_AIPW_nfe_cf, mps)
         results[[k]] <- data.frame(
-            method = c("IPW", "RIPW", "UNW", "AIPW_fe", "AIPW_nfe", "AIPW_mundlak"),
+            method = c("IPW", "RIPW", "UNW", "AIPW_fe", "AIPW_nfe", "AIPW_nfe_cf"),
             est = c(est_IPW$tauhat, est_RIPW$tauhat,
                     est_UNW$tauhat, est_AIPW_fe$tauhat,
-                    est_AIPW_nfe$tauhat,
-                    est_AIPW_mundlak$tauhat),
+                    est_AIPW_nfe$tauhat, est_AIPW_nfe_cf$tauhat),
             pval = c(est_IPW$pval, est_RIPW$pval,
                      est_UNW$pval, est_AIPW_fe$pval,
-                     est_AIPW_nfe$pval,
-                     est_AIPW_mundlak$pval),
+                     est_AIPW_nfe$pval, est_AIPW_nfe_cf$pval),
             se = c(est_IPW$se, est_RIPW$se,
                    est_UNW$se, est_AIPW_fe$se,
-                   est_AIPW_nfe$se,
-                   est_AIPW_mundlak$se),
+                   est_AIPW_nfe$se, est_AIPW_nfe_cf$se),
             out = out_model,
             treat = treat_model)
     }

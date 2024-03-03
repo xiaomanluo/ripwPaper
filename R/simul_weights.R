@@ -1,7 +1,13 @@
+################################################################
+#######
+####### Similation study and plots in Section 2.7
+#######
+################################################################
+
 library("tidyverse")
 library("hrbrthemes")
 library("latex2exp")
-source("utils.R")
+source("expr_helpers.R")
 
 #' Treatment effect weights for weighted twfe regression
 #' Inputs:

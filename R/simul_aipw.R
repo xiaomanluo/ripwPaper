@@ -4,6 +4,7 @@
 #######
 ################################################################
 
+library("ripw")
 source("expr_helpers.R")
 
 #### Simulation setup
